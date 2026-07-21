@@ -23,6 +23,8 @@ public class UserDataDto {
 
     private String sex;
 
+    private String role;
+
     private String status;
 
     private String createdAt;
@@ -110,6 +112,14 @@ public class UserDataDto {
 
     public void setSex(String sex) {
         this.sex = sex;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public String getStatus() {

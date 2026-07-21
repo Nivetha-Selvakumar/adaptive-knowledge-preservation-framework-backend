@@ -3,6 +3,7 @@ package com.psg.adaptive.knowledge_preservation_backend.mapper;
 import com.psg.adaptive.knowledge_preservation_backend.dtos.CreateUserRequestDto;
 import com.psg.adaptive.knowledge_preservation_backend.dtos.UserDataDto;
 import com.psg.adaptive.knowledge_preservation_backend.entities.UserEntity;
+import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumRole;
 import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumSex;
 import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumStatus;
 import org.springframework.stereotype.Component;
@@ -35,6 +36,10 @@ public class UserMapper {
 
         dto.setSex(entity.getSex() != null
                 ? entity.getSex().name()
+                : null);
+
+        dto.setRole(entity.getRole() != null
+                ? entity.getRole().name()
                 : null);
 
         dto.setStatus(entity.getStatus() != null
@@ -78,6 +83,10 @@ public class UserMapper {
 
         if (dto.getSex() != null && !dto.getSex().isBlank()) {
             user.setSex(EnumSex.valueOf(dto.getSex().toUpperCase()));
+        }
+
+        if (dto.getRole() != null && !dto.getRole().isBlank()) {
+            user.setRole(EnumRole.valueOf(dto.getRole().toUpperCase()));
         }
 
         user.setStatus(EnumStatus.ACTIVE);

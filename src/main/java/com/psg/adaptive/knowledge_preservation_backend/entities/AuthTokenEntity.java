@@ -3,9 +3,7 @@ package com.psg.adaptive.knowledge_preservation_backend.entities;
 
 import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumStatus;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -61,7 +59,7 @@ public class AuthTokenEntity {
         return user;
     }
 
-    public void setUser(UserEntity faculty) {
+    public void setUser(UserEntity user) {
         this.user = user;
     }
 

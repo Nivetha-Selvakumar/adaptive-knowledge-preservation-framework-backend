@@ -6,29 +6,29 @@ import lombok.Data;
 public class LogoutResponseDto {
 
     private String message;
-    private int status;
+    private int code;
 
     public LogoutResponseDto() {
     }
 
-    public LogoutResponseDto(String message, int status) {
+    public LogoutResponseDto(String message, int code) {
         this.message = message;
-        this.status = status;
+        this.code = code;
     }
 
     public String getMessage() {
         return message;
     }
 
-    public int getStatus() {
-        return status;
+    public int getCode() {
+        return code;
     }
 
     public void setMessage(String message) {
         this.message = message;
     }
 
-    public void setStatus(int status) {
-        this.status = status;
+    public void setCode(int code) {
+        this.code = code;
     }
 }

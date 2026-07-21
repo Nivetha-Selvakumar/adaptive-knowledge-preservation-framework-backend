@@ -29,7 +29,15 @@ public class CreateUserValidation {
         validatePhoneNumber(dto.getPhoneNumber());
         validatePassword(dto.getPassword());
         validateSex(dto.getSex());
+        validateRole(dto.getRole());
         validateDob(dto.getDob());
+    }
+
+    private void validateRole(String role) throws CommonException {
+        if (role == null || role.isBlank()) {
+            throw new CommonException("Role is required",
+                    HttpStatus.BAD_REQUEST.value());
+        }
     }
 
     private void validateFirstName(String firstName) throws CommonException {

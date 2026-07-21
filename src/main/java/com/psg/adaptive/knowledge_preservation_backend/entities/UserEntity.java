@@ -1,5 +1,6 @@
 package com.psg.adaptive.knowledge_preservation_backend.entities;
 
+import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumRole;
 import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumSex;
 import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumStatus;
 import jakarta.persistence.*;
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "faculty")
+@Table(name = "UserTable")
 public class UserEntity {
 
     @Id
@@ -30,6 +31,10 @@ public class UserEntity {
 
     @Column(name = "email", nullable = false, unique = true, length = 150)
     private String email;
+
+    @Column(name = "role", nullable = false, length = 150)
+    @Enumerated(EnumType.STRING)
+    private EnumRole role;
 
     @Column(name = "phone_number", length = 15)
     private String phoneNumber;
@@ -74,14 +79,16 @@ public class UserEntity {
     public UserEntity() {
     }
 
-    public UserEntity(UUID id, String firstName, String lastName, String email, String phoneNumber, String password,
-                      String address, LocalDate dob, EnumSex sex, EnumStatus status, LocalDateTime createdAt,
-                      String createdBy, LocalDateTime updatedAt, String updatedBy,
-                      String resetToken, LocalDateTime resetTokenExpiry) {
+    public UserEntity(UUID id, String firstName, String lastName, String email,
+                      EnumRole role, String phoneNumber, String password,
+                      String address, LocalDate dob, EnumSex sex, EnumStatus status,
+                      LocalDateTime createdAt, String createdBy, LocalDateTime updatedAt,
+                      String updatedBy, String resetToken, LocalDateTime resetTokenExpiry) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
+        this.role = role;
         this.phoneNumber = phoneNumber;
         this.password = password;
         this.address = address;
@@ -142,6 +149,14 @@ public class UserEntity {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public EnumRole getRole() {
+        return role;
+    }
+
+    public void setRole(EnumRole role) {
+        this.role = role;
     }
 
     public String getAddress() {

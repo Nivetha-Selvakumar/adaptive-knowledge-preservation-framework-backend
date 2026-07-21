@@ -27,7 +27,7 @@ public class AuthController {
     private static final Logger logger =
             LoggerFactory.getLogger(AuthController.class);
 
-    @PostMapping("/login")
+    @PostMapping("/auth/login")
     public ResponseEntity<ResponseDto> loginUser(@RequestBody LoginRequestDto loginRequestDto) throws CommonException {
 
         //Validating logging in
@@ -38,7 +38,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/logout")
+    @PostMapping("/auth/logout")
     public ResponseEntity<LogoutResponseDto> logoutUser(@RequestHeader("Authorization") String token) throws CommonException {
         logger.info("Processing logout request...");
 
@@ -53,7 +53,7 @@ public class AuthController {
     }
 
 
-    @PostMapping("/forget-password")
+    @PostMapping("/auth/forget-password")
     public ResponseEntity<ResponseDto> forgotPassword(
             @RequestBody ForgotPasswordRequestDto request
     ) throws CommonException {
@@ -70,7 +70,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/reset-password")
+    @PostMapping("/auth/reset-password")
     public ResponseEntity<ResponseDto> resetPassword(@RequestBody ResetPasswordDto dto)
             throws CommonException {
 
@@ -83,7 +83,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/create-user")
+    @PostMapping("/auth/create-user")
     public ResponseEntity<ResponseDto> createUser(
             @RequestBody CreateUserRequestDto createUserRequestDto)
             throws CommonException {

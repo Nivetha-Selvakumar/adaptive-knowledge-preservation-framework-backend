@@ -10,7 +10,7 @@ public class ApiResponseDto {
     private String message;
 
     public ApiResponseDto(int code, String message) {
-        this.code = code;a
+        this.code = code;
         this.message = message;
     }
 
