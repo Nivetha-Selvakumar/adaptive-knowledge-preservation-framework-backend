@@ -6,7 +6,6 @@ import com.psg.adaptive.knowledge_preservation_backend.dtos.LoginRequestDto;
 import com.psg.adaptive.knowledge_preservation_backend.dtos.UserDataDto;
 import com.psg.adaptive.knowledge_preservation_backend.entities.AuthTokenEntity;
 import com.psg.adaptive.knowledge_preservation_backend.entities.UserEntity;
-import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumSex;
 import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumStatus;
 import com.psg.adaptive.knowledge_preservation_backend.exception.CommonException;
 import com.psg.adaptive.knowledge_preservation_backend.mapper.AuthTokenMapper;
@@ -29,7 +28,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -155,7 +153,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void processForgotPassword(String email) throws CommonException {
 
-        UserEntity user = userRepo.findByEmail(email)
+        UserEntity user = userRepo.findByEmailAndStatus(email,EnumStatus.ACTIVE)
                 .orElseThrow(() ->
                         new CommonException(
                                 "Email not found",
