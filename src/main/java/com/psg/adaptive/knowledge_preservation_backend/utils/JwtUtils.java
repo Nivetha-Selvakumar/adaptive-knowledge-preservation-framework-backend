@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.time.Duration;
 import java.util.Date;
 
 @Component
@@ -49,4 +50,36 @@ public class JwtUtils {
             throw new CommonException("Invalid token", HttpStatus.UNAUTHORIZED.value());
         }
     }
+
+    public String generateShortLivedToken(
+            String email,
+            Duration expiry
+    ) {
+
+        return Jwts.builder()
+                .setSubject(email)
+                .setIssuedAt(new Date())
+                .setExpiration(
+                        new Date(
+                                System.currentTimeMillis()
+                                        + expiry.toMillis()
+                        )
+                )
+                .signWith(
+                        getSigningKey(),
+                        SignatureAlgorithm.HS256
+                )
+                .compact();
+
+    }
+
+    public String validateAndExtractSubject(
+            String token
+    ) throws CommonException {
+
+        return validateToken(token)
+                .getSubject();
+
+    }
+
 }

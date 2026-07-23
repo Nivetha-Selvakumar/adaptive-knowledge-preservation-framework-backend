@@ -1,10 +1,10 @@
 package com.psg.adaptive.knowledge_preservation_backend.mapper;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.psg.adaptive.knowledge_preservation_backend.entities.EnterpriseApplicationConnectionEntity;
 import com.psg.adaptive.knowledge_preservation_backend.entities.UserEntity;
 import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumEnterpriseApplication;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
 
