@@ -17,4 +17,8 @@ public interface EnterpriseApplicationConnectionRepo extends
             UserEntity user,
             EnumEnterpriseApplication application
     );
+
+    long countByUserAndConnectedTrue(UserEntity user);
+
+    long countByUser(UserEntity user);
 }

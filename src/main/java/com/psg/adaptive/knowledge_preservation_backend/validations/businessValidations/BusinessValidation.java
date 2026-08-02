@@ -1,6 +1,6 @@
 package com.psg.adaptive.knowledge_preservation_backend.validations.businessValidations;
 
-
+import com.psg.adaptive.knowledge_preservation_backend.dtos.UserDataDto;
 import com.psg.adaptive.knowledge_preservation_backend.entities.UserEntity;
 import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumStatus;
 import com.psg.adaptive.knowledge_preservation_backend.exception.CommonException;
@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class BusinessValidation {
@@ -46,23 +47,6 @@ public class BusinessValidation {
             throw new CommonException("Password doesn't match", HttpStatus.UNAUTHORIZED.value());
         }
     }
-//
-//    public void checkAdminRole(String role) throws CommonException {
-//        logger.info("Validating Admin Role");
-//        if (!role.equalsIgnoreCase(EnumRole.ADMIN.getCode())) {
-//            logger.info("Error in validating Admin");
-//            throw new CommonException("You are not an admin. Not Allowed to logging in", HttpStatus.BAD_REQUEST.value());
-//        }
-//    }
-//
-//    public void checkEmailExistAndStatus(String email) throws CommonException {
-//        logger.info("Checking for Email Exist");
-//        Optional<UserEntity> adminFacultyData = userRepo.findByEmailAndRole(email,EnumRole.ADMIN);
-//        if (adminFacultyData.isPresent() && adminFacultyData.get().getStatus().equals(EnumStatus.ACTIVE)) {
-//            logger.error("Email Already exist");
-//            throw new CommonException("Email Already exist for Admin", HttpStatus.BAD_REQUEST.value());
-//        }
-//    }
 
     public void validateUserAndAuthToken(String id, String createdBy) throws CommonException {
         logger.info("Validate User Id and Auth User Id");
@@ -85,28 +69,11 @@ public class BusinessValidation {
         }
     }
 
-//    public void checkAdminFaculty(String role) throws CommonException {
-//        logger.info("Check for Admin");
-//        if(!role.equalsIgnoreCase(EnumRole.ADMIN.getCode())){
-//            logger.info("Error Not an Admin");
-//            throw new CommonException("You are not an Admin",HttpStatus.BAD_REQUEST.value());
-//        }
-//    }
-//
-//    public UserEntity checkFacultyEmailExist(String email) throws CommonException {
-//        logger.info("Checking for Email and Password Exist for Faculty");
-//        Optional<UserEntity> facultyEntity = userRepo.findByEmail(email);
-//        UserEntity faculty = facultyEntity.orElseThrow(() ->
-//                new CommonException("Email not exist", HttpStatus.BAD_REQUEST.value())
-//        );
-//
-//        if (faculty.getRole() != EnumRole.FACULTY) {
-//            throw new CommonException("You are not a Faculty", HttpStatus.BAD_REQUEST.value());
-//        }
-//
-//        if (faculty.getStatus() != EnumStatus.ACTIVE) {
-//            throw new CommonException("Faculty is not active", HttpStatus.BAD_REQUEST.value());
-//        }
-//        return faculty;
-//    }
+    public UserEntity getUser(UserDataDto userDataDto)
+            throws CommonException {
+
+        return userRepo.findById(UUID.fromString(userDataDto.getId()))
+                .orElseThrow(() ->
+                        new CommonException("User not found", HttpStatus.BAD_REQUEST.value()));
+    }
 }
