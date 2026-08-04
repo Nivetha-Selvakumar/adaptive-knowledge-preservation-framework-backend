@@ -1,11 +1,18 @@
 package com.psg.adaptive.knowledge_preservation_backend.controller;
 
+import com.psg.adaptive.knowledge_preservation_backend.config.HeaderConfig;
+import com.psg.adaptive.knowledge_preservation_backend.dtos.GithubConnectionStatusResponseDto;
+import com.psg.adaptive.knowledge_preservation_backend.dtos.GithubRepositoryResponseDto;
+import com.psg.adaptive.knowledge_preservation_backend.dtos.UserDataDto;
+import com.psg.adaptive.knowledge_preservation_backend.exception.CommonException;
 import com.psg.adaptive.knowledge_preservation_backend.service.GithubService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -15,41 +22,17 @@ public class GithubController {
     @Autowired
     GithubService githubService;
 
+    @Autowired
+    HeaderConfig headerConfig;
 
-    //    @GetMapping("/connect")
-//    public void connect(HttpServletResponse response) throws IOException {
-//        githubService.connect(response);
-//    }
-//
-//    @GetMapping("/callback")
-//    public void callback(
-//            @RequestParam("code") String code,
-//            HttpServletResponse response
-//    ) throws Exception {
-//
-//        githubService.callback(code, response);
-//    }
     @GetMapping("/connect")
-    public Map<String, String> connect(
-
-            @RequestHeader("Authorization") String authorizationHeader
-
-    ) throws Exception {
-
+    public Map<String, String> connect(@RequestHeader("Authorization") String authorizationHeader) throws Exception {
         return githubService.connect(authorizationHeader);
-
     }
 
     @GetMapping("/callback")
-    public void callback(
-
-            @RequestParam("code") String code,
-
-            @RequestParam("state") String state,
-
-            HttpServletResponse response
-
-    ) throws Exception {
+    public void callback(@RequestParam("code") String code, @RequestParam("state") String state,
+                         HttpServletResponse response) throws Exception {
 
         githubService.callback(
                 code,
@@ -67,5 +50,47 @@ public class GithubController {
         return ResponseEntity.ok(
                 githubService.sync(authorizationHeader)
         );
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<GithubConnectionStatusResponseDto> githubStatus(
+            @RequestHeader("Authorization") String token) throws CommonException {
+
+        UserDataDto userDataDto = headerConfig.getAuthorizationAdminHeader(token);
+        GithubConnectionStatusResponseDto githubConnectionStatusResponseDto = githubService.getGithubStatus(userDataDto);
+
+        return ResponseEntity.ok(githubConnectionStatusResponseDto);
+
+    }
+
+    @GetMapping("/repositories")
+    public ResponseEntity<List<GithubRepositoryResponseDto>> getRepositories(
+            @RequestHeader("Authorization") String token
+    ) throws CommonException {
+
+        UserDataDto userDataDto =
+                headerConfig.getAuthorizationAdminHeader(token);
+
+        List<GithubRepositoryResponseDto> repositoryResponseDtos = githubService.getRepositories(userDataDto);
+
+        return ResponseEntity.ok(repositoryResponseDtos);
+    }
+
+    @DeleteMapping("/disconnect")
+    public ResponseEntity<?> disconnectGithub(
+            @RequestHeader("Authorization") String token
+    ) throws CommonException {
+
+        UserDataDto userDataDto =
+                headerConfig.getAuthorizationAdminHeader(token);
+
+        githubService.disconnectGithub(userDataDto);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "message", "GitHub disconnected successfully."
+                )
+        );
+
     }
 }
