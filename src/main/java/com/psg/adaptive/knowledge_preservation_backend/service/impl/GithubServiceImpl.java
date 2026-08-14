@@ -2,13 +2,16 @@ package com.psg.adaptive.knowledge_preservation_backend.service.impl;
 
 import com.psg.adaptive.knowledge_preservation_backend.dtos.*;
 import com.psg.adaptive.knowledge_preservation_backend.entities.EnterpriseApplicationConnectionEntity;
+import com.psg.adaptive.knowledge_preservation_backend.entities.RepositoryAgentEntity;
+import com.psg.adaptive.knowledge_preservation_backend.entities.RepositoryEntity;
 import com.psg.adaptive.knowledge_preservation_backend.entities.UserEntity;
+import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumAgentStatus;
 import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumEnterpriseApplication;
 import com.psg.adaptive.knowledge_preservation_backend.exception.CommonException;
 import com.psg.adaptive.knowledge_preservation_backend.mapper.EnterpriseApplicationConnectionMapper;
 import com.psg.adaptive.knowledge_preservation_backend.mapper.GithubRepositoryMapper;
-import com.psg.adaptive.knowledge_preservation_backend.repositories.EnterpriseApplicationConnectionRepo;
-import com.psg.adaptive.knowledge_preservation_backend.repositories.UserRepo;
+import com.psg.adaptive.knowledge_preservation_backend.repositories.*;
+import com.psg.adaptive.knowledge_preservation_backend.service.GithubRepositoryAgentService;
 import com.psg.adaptive.knowledge_preservation_backend.service.GithubService;
 import com.psg.adaptive.knowledge_preservation_backend.utils.JwtUtils;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,8 +63,26 @@ public class GithubServiceImpl implements GithubService {
     @Value("${github.repositories.uri}")
     String githubRepositoriesUri;
 
+    @Value("${github.repository.uri}")
+    String githubRepositoryUri;
+
+    @Value("${github.repository.by.id.uri}")
+    String githubRepositoryByIdUri;
+
     @Autowired
     UserRepo userRepository;
+
+    @Autowired
+    RepositoryRepo repositoryRepo;
+
+    @Autowired
+    RepositoryAgentRepo repositoryAgentRepo;
+
+    @Autowired
+    GithubRepositoryAgentService githubRepositoryAgentService;
+
+    @Autowired
+    RepositoryActivityRepo repositoryActivityRepo;
 
     @Autowired
     EnterpriseApplicationConnectionRepo enterpriseApplicationConnectionRepo;
@@ -372,5 +394,305 @@ public class GithubServiceImpl implements GithubService {
 
         }
         return repositoryList;
+    }
+
+    @Override
+    public GithubRepositorySyncResponseDto syncRepository(
+            UserDataDto userDataDto,
+            String repositoryId
+    ) throws Exception {
+
+        log.info(
+                "========== GitHub Repository Sync Started =========="
+        );
+
+        log.info(
+                "Repository ID received: {}",
+                repositoryId
+        );
+
+        /*
+         * 1. Find user
+         */
+        UserEntity user =
+                userRepository
+                        .findByEmail(
+                                userDataDto.getEmail()
+                        )
+                        .orElseThrow(() ->
+                                new CommonException(
+                                        "User not found",
+                                        HttpStatus.BAD_REQUEST.value()
+                                )
+                        );
+
+        log.info(
+                "User found: {}",
+                user.getEmail()
+        );
+
+        /*
+         * 2. Find GitHub connection
+         */
+        EnterpriseApplicationConnectionEntity connection =
+                enterpriseApplicationConnectionRepo
+                        .findByUserAndApplication(
+                                user,
+                                EnumEnterpriseApplication.GITHUB
+                        )
+                        .orElseThrow(() ->
+                                new CommonException(
+                                        "GitHub not connected",
+                                        HttpStatus.BAD_REQUEST.value()
+                                )
+                        );
+
+        log.info(
+                "GitHub connection found for user: {}",
+                user.getEmail()
+        );
+
+        /*
+         * 3. Validate access token
+         */
+        if (connection.getAccessToken() == null ||
+                connection.getAccessToken().isBlank()) {
+
+            log.error(
+                    "GitHub access token is missing"
+            );
+
+            throw new CommonException(
+                    "GitHub access token not found",
+                    HttpStatus.BAD_REQUEST.value()
+            );
+        }
+
+        /*
+         * 4. Get repository details from GitHub
+         *
+         * repositoryId is the GitHub numeric ID.
+         *
+         * Example:
+         *
+         * https://api.github.com/repositories/1303771977
+         */
+        log.info(
+                "Fetching GitHub repository details for ID: {}",
+                repositoryId
+        );
+
+        String repositoryResponse =
+                restClient
+                        .get()
+                        .uri(
+                                githubRepositoryByIdUri +
+                                        "/" +
+                                        repositoryId
+                        )
+                        .header(
+                                "Authorization",
+                                "Bearer " +
+                                        connection.getAccessToken()
+                        )
+                        .header(
+                                "Accept",
+                                "application/vnd.github+json"
+                        )
+                        .header(
+                                "X-GitHub-Api-Version",
+                                "2022-11-28"
+                        )
+                        .accept(
+                                MediaType.APPLICATION_JSON
+                        )
+                        .retrieve()
+                        .body(String.class);
+
+        log.info(
+                "GitHub repository response received"
+        );
+
+        if (repositoryResponse == null ||
+                repositoryResponse.isBlank()) {
+
+            throw new CommonException(
+                    "Empty response received from GitHub",
+                    HttpStatus.BAD_REQUEST.value()
+            );
+        }
+
+        /*
+         * 5. Parse repository response
+         */
+        JsonNode repositoryJson =
+                objectMapper.readTree(
+                        repositoryResponse
+                );
+
+        log.info(
+                "GitHub repository name: {}",
+                repositoryJson
+                        .path("name")
+                        .asText()
+        );
+
+        log.info(
+                "GitHub repository full name: {}",
+                repositoryJson
+                        .path("full_name")
+                        .asText()
+        );
+
+        /*
+         * 6. Create / update RepositoryEntity
+         */
+        RepositoryEntity repository =
+                repositoryRepo
+                        .findByGithubRepositoryIdAndUser(
+                                repositoryId,
+                                user
+                        )
+                        .orElse(
+                                new RepositoryEntity()
+                        );
+
+        repository =
+                githubRepositoryMapper.mapRepository(
+                        repository,
+                        user,
+                        repositoryJson,
+                        repositoryId
+                );
+
+        repository =
+                repositoryRepo.save(
+                        repository
+                );
+
+        log.info(
+                "Repository saved successfully. Database ID: {}",
+                repository.getId()
+        );
+
+        /*
+         * 7. Create / get Repository Agent
+         */
+        RepositoryAgentEntity repositoryAgent =
+                repositoryAgentRepo
+                        .findByRepository(
+                                repository
+                        )
+                        .orElse(
+                                new RepositoryAgentEntity()
+                        );
+
+        /*
+         * 8. Map Repository Agent
+         */
+        repositoryAgent =
+                githubRepositoryMapper.mapRepositoryAgent(
+                        repositoryAgent,
+                        repository
+                );
+
+        /*
+         * 9. Activate Repository Agent
+         */
+        repositoryAgent.setStatus(
+                EnumAgentStatus.ACTIVE
+        );
+
+        repositoryAgent =
+                repositoryAgentRepo.save(
+                        repositoryAgent
+                );
+
+        log.info(
+                "Repository agent activated. Agent ID: {}",
+                repositoryAgent.getId()
+        );
+
+        /*
+         * 10. Collect NEW GitHub activities
+         *
+         * The collector already checks whether
+         * an activity exists in the database.
+         *
+         * Therefore this value represents
+         * NEW activities collected during
+         * this synchronization.
+         */
+        log.info(
+                "Starting GitHub activity collection for: {}",
+                repository.getFullName()
+        );
+
+        int newActivitiesCollected =
+                githubRepositoryAgentService
+                        .collectActivities(
+                                repository,
+                                connection.getAccessToken()
+                        );
+
+        log.info(
+                "New activities collected: {}",
+                newActivitiesCollected
+        );
+
+        /*
+         * 11. Get TOTAL activities stored
+         */
+        long totalActivities =
+                repositoryActivityRepo
+                        .countByRepository(
+                                repository
+                        );
+
+        log.info(
+                "Total activities stored for repository {}: {}",
+                repository.getFullName(),
+                totalActivities
+        );
+
+        /*
+         * 12. Update last synchronization time
+         */
+        repositoryAgent.setLastSyncedAt(
+                LocalDateTime.now()
+        );
+
+        repositoryAgent =
+                repositoryAgentRepo.save(
+                        repositoryAgent
+                );
+
+        log.info(
+                "Repository agent last sync time updated"
+        );
+
+        /*
+         * 13. Final response
+         */
+        log.info(
+                "========== GitHub Repository Sync Completed =========="
+        );
+
+        return new GithubRepositorySyncResponseDto(
+
+                repository.getGithubRepositoryId(),
+
+                repository.getRepositoryName(),
+
+                repositoryAgent
+                        .getStatus()
+                        .getCode(),
+
+                "Repository synchronized successfully. " +
+                        newActivitiesCollected +
+                        " new activities collected. " +
+                        "Total activities: " +
+                        totalActivities
+        );
     }
 }
