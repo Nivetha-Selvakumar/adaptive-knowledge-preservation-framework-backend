@@ -3,6 +3,7 @@ package com.psg.adaptive.knowledge_preservation_backend.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.psg.adaptive.knowledge_preservation_backend.entities.RepositoryActivityEntity;
 import com.psg.adaptive.knowledge_preservation_backend.entities.RepositoryEntity;
 import com.psg.adaptive.knowledge_preservation_backend.enumeration.EnumGithubActivityType;
@@ -568,5 +569,494 @@ public class GithubRepositoryAgentServiceImpl implements GithubRepositoryAgentSe
         return objectMapper.readTree(
                 response
         );
+    }
+
+    @Override
+    public int processWebhookEvent(
+            RepositoryEntity repository,
+            String eventType,
+            String payload
+    ) throws Exception {
+
+        log.info(
+                "Processing GitHub webhook event. Repository: {}, Event: {}",
+                repository.getFullName(),
+                eventType
+        );
+
+        if (eventType == null ||
+                eventType.isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "GitHub event type is required"
+            );
+        }
+
+        JsonNode json =
+                objectMapper.readTree(payload);
+
+
+        switch (eventType) {
+
+            case "push":
+
+                return processPushEvent(
+                        repository,
+                        json
+                );
+
+
+            case "issues":
+
+                return processIssueEvent(
+                        repository,
+                        json
+                );
+
+
+            case "pull_request":
+
+                return processPullRequestEvent(
+                        repository,
+                        json
+                );
+
+
+            case "release":
+
+                return processReleaseEvent(
+                        repository,
+                        json
+                );
+
+
+            case "create":
+
+            case "delete":
+
+                return processBranchEvent(
+                        repository,
+                        json
+                );
+
+
+            case "ping":
+
+                log.info(
+                        "GitHub webhook ping received."
+                );
+
+                return 0;
+
+
+            default:
+
+                log.info(
+                        "GitHub event '{}' is currently not handled.",
+                        eventType
+                );
+
+                return 0;
+        }
+    }
+
+    private int processPushEvent(
+            RepositoryEntity repository,
+            JsonNode payload
+    ) throws Exception {
+
+        log.info(
+                "Processing PUSH event for {}",
+                repository.getFullName()
+        );
+
+        JsonNode commits =
+                payload.path("commits");
+
+        if (!commits.isArray()) {
+
+            return 0;
+        }
+
+        int count = 0;
+
+        for (JsonNode commit : commits) {
+
+            String sha =
+                    commit
+                            .path("id")
+                            .asText(null);
+
+            if (sha == null ||
+                    sha.isBlank()) {
+
+                continue;
+            }
+
+            /*
+             * GitHub webhook payload contains
+             * basic commit information.
+             *
+             * We check the database first.
+             */
+
+            if (repositoryActivityRepo
+                    .findByRepositoryAndActivityTypeAndExternalId(
+                            repository,
+                            EnumGithubActivityType.COMMIT,
+                            sha
+                    )
+                    .isPresent()) {
+
+                log.info(
+                        "Commit already exists: {}",
+                        sha
+                );
+
+                continue;
+            }
+
+
+            /*
+             * Fetch complete commit information
+             * from GitHub.
+             */
+
+            String commitUri =
+                    githubRepositoryUri
+                            + "/"
+                            + repository.getFullName()
+                            + "/commits/"
+                            + sha;
+
+
+            JsonNode commitDetails =
+                    get(
+                            commitUri,
+                            null
+                    );
+
+
+            /*
+             * The webhook processing endpoint
+             * does not necessarily have the GitHub
+             * token.
+             *
+             * Therefore, if get() cannot be used
+             * here, use the webhook payload itself.
+             */
+
+            if (commitDetails == null ||
+                    commitDetails.isMissingNode()) {
+
+                commitDetails = commit;
+            }
+
+
+            RepositoryActivityEntity activity =
+                    githubActivityMapper.mapCommit(
+                            new RepositoryActivityEntity(),
+                            repository,
+                            commitDetails
+                    );
+
+
+            repositoryActivityRepo.save(
+                    activity
+            );
+
+
+            count++;
+
+            log.info(
+                    "New commit stored: {}",
+                    sha
+            );
+        }
+
+        log.info(
+                "New push activities stored: {}",
+                count
+        );
+
+        return count;
+    }
+
+
+    private int processIssueEvent(
+            RepositoryEntity repository,
+            JsonNode payload
+    ) throws Exception {
+
+        log.info(
+                "Processing ISSUE event for {}",
+                repository.getFullName()
+        );
+
+        JsonNode issue =
+                payload.path("issue");
+
+        if (issue.isMissingNode()) {
+
+            return 0;
+        }
+
+        String externalId =
+                issue
+                        .path("id")
+                        .asText(null);
+
+        if (externalId == null ||
+                externalId.isBlank()) {
+
+            return 0;
+        }
+
+        if (repositoryActivityRepo
+                .findByRepositoryAndActivityTypeAndExternalId(
+                        repository,
+                        EnumGithubActivityType.ISSUE,
+                        externalId
+                )
+                .isPresent()) {
+
+            log.info(
+                    "Issue already exists: {}",
+                    externalId
+            );
+
+            return 0;
+        }
+
+
+        RepositoryActivityEntity activity =
+                githubActivityMapper.mapIssue(
+                        new RepositoryActivityEntity(),
+                        repository,
+                        issue
+                );
+
+
+        repositoryActivityRepo.save(
+                activity
+        );
+
+
+        log.info(
+                "New issue stored: {}",
+                externalId
+        );
+
+
+        return 1;
+    }
+
+    private int processPullRequestEvent(
+            RepositoryEntity repository,
+            JsonNode payload
+    ) throws Exception {
+
+        log.info(
+                "Processing PULL REQUEST event for {}",
+                repository.getFullName()
+        );
+
+        JsonNode pullRequest =
+                payload.path("pull_request");
+
+        if (pullRequest.isMissingNode()) {
+
+            return 0;
+        }
+
+        String externalId =
+                pullRequest
+                        .path("id")
+                        .asText(null);
+
+        if (externalId == null ||
+                externalId.isBlank()) {
+
+            return 0;
+        }
+
+
+        if (repositoryActivityRepo
+                .findByRepositoryAndActivityTypeAndExternalId(
+                        repository,
+                        EnumGithubActivityType.PULL_REQUEST,
+                        externalId
+                )
+                .isPresent()) {
+
+            log.info(
+                    "Pull request already exists: {}",
+                    externalId
+            );
+
+            return 0;
+        }
+
+
+        RepositoryActivityEntity activity =
+                githubActivityMapper.mapPullRequest(
+                        new RepositoryActivityEntity(),
+                        repository,
+                        pullRequest
+                );
+
+
+        repositoryActivityRepo.save(
+                activity
+        );
+
+
+        log.info(
+                "New pull request stored: {}",
+                externalId
+        );
+
+
+        return 1;
+    }
+
+    private int processReleaseEvent(
+            RepositoryEntity repository,
+            JsonNode payload
+    ) throws Exception {
+
+        log.info(
+                "Processing RELEASE event for {}",
+                repository.getFullName()
+        );
+
+        JsonNode release =
+                payload.path("release");
+
+        if (release.isMissingNode()) {
+
+            return 0;
+        }
+
+        String externalId =
+                release
+                        .path("id")
+                        .asText(null);
+
+        if (externalId == null ||
+                externalId.isBlank()) {
+
+            return 0;
+        }
+
+
+        if (repositoryActivityRepo
+                .findByRepositoryAndActivityTypeAndExternalId(
+                        repository,
+                        EnumGithubActivityType.RELEASE,
+                        externalId
+                )
+                .isPresent()) {
+
+            return 0;
+        }
+
+
+        RepositoryActivityEntity activity =
+                githubActivityMapper.mapRelease(
+                        new RepositoryActivityEntity(),
+                        repository,
+                        release
+                );
+
+
+        repositoryActivityRepo.save(
+                activity
+        );
+
+
+        log.info(
+                "New release stored: {}",
+                externalId
+        );
+
+
+        return 1;
+    }
+
+    private int processBranchEvent(
+            RepositoryEntity repository,
+            JsonNode payload
+    ) throws Exception {
+
+        log.info(
+                "Processing branch event for {}",
+                repository.getFullName()
+        );
+
+        String ref =
+                payload
+                        .path("ref")
+                        .asText(null);
+
+        String refType =
+                payload
+                        .path("ref_type")
+                        .asText(null);
+
+        if (ref == null ||
+                ref.isBlank()) {
+
+            return 0;
+        }
+
+        String externalId =
+                refType
+                        + ":"
+                        + ref;
+
+
+        if (repositoryActivityRepo
+                .findByRepositoryAndActivityTypeAndExternalId(
+                        repository,
+                        EnumGithubActivityType.BRANCH,
+                        externalId
+                )
+                .isPresent()) {
+
+            return 0;
+        }
+
+
+        ObjectNode branchJson =
+                objectMapper.createObjectNode();
+
+        branchJson.put(
+                "name",
+                ref
+        );
+
+        branchJson.put(
+                "event",
+                payload
+                        .path("ref_type")
+                        .asText("")
+        );
+
+
+        RepositoryActivityEntity activity =
+                githubActivityMapper.mapBranch(
+                        new RepositoryActivityEntity(),
+                        repository,
+                        branchJson
+                );
+
+
+        repositoryActivityRepo.save(
+                activity
+        );
+
+
+        return 1;
     }
 }

@@ -25,12 +25,27 @@ public class GithubRepositoryResponseDto {
 
     private String updatedAt;
 
-    public GithubRepositoryResponseDto() {
+    private Boolean agentActive;
 
+
+    public GithubRepositoryResponseDto() {
     }
 
-    public GithubRepositoryResponseDto(String id, String name, String fullName, String description, String language,
-                                       Boolean isPrivate, String defaultBranch, String htmlUrl, String owner, String updatedAt) {
+
+    public GithubRepositoryResponseDto(
+            String id,
+            String name,
+            String fullName,
+            String description,
+            String language,
+            Boolean isPrivate,
+            String defaultBranch,
+            String htmlUrl,
+            String owner,
+            String updatedAt,
+            Boolean agentActive
+    ) {
+
         this.id = id;
         this.name = name;
         this.fullName = fullName;
@@ -41,7 +56,9 @@ public class GithubRepositoryResponseDto {
         this.htmlUrl = htmlUrl;
         this.owner = owner;
         this.updatedAt = updatedAt;
+        this.agentActive = agentActive;
     }
+
 
     public String getId() {
         return id;
@@ -51,6 +68,7 @@ public class GithubRepositoryResponseDto {
         this.id = id;
     }
 
+
     public String getName() {
         return name;
     }
@@ -58,6 +76,7 @@ public class GithubRepositoryResponseDto {
     public void setName(String name) {
         this.name = name;
     }
+
 
     public String getFullName() {
         return fullName;
@@ -67,6 +86,7 @@ public class GithubRepositoryResponseDto {
         this.fullName = fullName;
     }
 
+
     public String getDescription() {
         return description;
     }
@@ -74,6 +94,7 @@ public class GithubRepositoryResponseDto {
     public void setDescription(String description) {
         this.description = description;
     }
+
 
     public String getLanguage() {
         return language;
@@ -83,13 +104,15 @@ public class GithubRepositoryResponseDto {
         this.language = language;
     }
 
-    public Boolean getPrivate() {
+
+    public Boolean getIsPrivate() {
         return isPrivate;
     }
 
-    public void setPrivate(Boolean aPrivate) {
-        isPrivate = aPrivate;
+    public void setIsPrivate(Boolean isPrivate) {
+        this.isPrivate = isPrivate;
     }
+
 
     public String getDefaultBranch() {
         return defaultBranch;
@@ -99,6 +122,7 @@ public class GithubRepositoryResponseDto {
         this.defaultBranch = defaultBranch;
     }
 
+
     public String getHtmlUrl() {
         return htmlUrl;
     }
@@ -106,6 +130,7 @@ public class GithubRepositoryResponseDto {
     public void setHtmlUrl(String htmlUrl) {
         this.htmlUrl = htmlUrl;
     }
+
 
     public String getOwner() {
         return owner;
@@ -115,11 +140,21 @@ public class GithubRepositoryResponseDto {
         this.owner = owner;
     }
 
+
     public String getUpdatedAt() {
         return updatedAt;
     }
 
     public void setUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+
+    public Boolean getAgentActive() {
+        return agentActive;
+    }
+
+    public void setAgentActive(Boolean agentActive) {
+        this.agentActive = agentActive;
     }
 }

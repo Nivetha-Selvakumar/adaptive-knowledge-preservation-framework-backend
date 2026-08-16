@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Component
 public class GithubRepositoryMapper {
 
-    public GithubRepositoryResponseDto map(JsonNode repository) {
+    public GithubRepositoryResponseDto map(JsonNode repository, boolean isActive) {
 
         GithubRepositoryResponseDto dto =
                 new GithubRepositoryResponseDto();
@@ -67,6 +67,7 @@ public class GithubRepositoryMapper {
                 repository.get("updated_at").asText()
         );
 
+        dto.setAgentActive(isActive);
         return dto;
 
     }
